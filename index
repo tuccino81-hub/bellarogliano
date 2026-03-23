@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Bella Rogliano – Gestione Tavoli</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--verde:#2d7a4f;--verde-light:#e6f4ed;--verde-verve:#1a4f2e;--verde-verve-light:#d4eddf;--rosso:#b53333;--rosso-light:#fbeaea;--giallo:#b07d1a;--giallo-light:#fef6e4;--grigio-light:#f0f0f0;--bg:#faf8f5;--card:#fff;--testo:#1a1a1a;--testo2:#666;--bordo:#e0dbd2;--oro:#c2a96a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--testo);display:flex;flex-direction:column;}
+header{height:54px;background:#1a1208;color:#f5ead8;padding:0 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+header h1{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;}
+header p{font-size:0.68rem;color:#c2a96a;margin-top:1px;}
+#stato-sync{font-size:0.68rem;padding:3px 10px;border-radius:20px;font-weight:500;white-space:nowrap;}
+.sync-ok{background:#1f4f2e;color:#7ed4a4;}.sync-err{background:#4f1f1f;color:#f4a0a0;}.sync-load{background:#3a2e10;color:#f4d07e;}
+.main{display:flex;flex:1;overflow:hidden;}
+.panel-sx{width:240px;flex-shrink:0;background:#fff;border-right:1px solid var(--bordo);display:flex;flex-direction:column;overflow:hidden;}
+.panel-sx-header{padding:8px 10px;border-bottom:1px solid var(--bordo);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.panel-sx-header h2{font-size:0.75rem;font-weight:500;color:var(--testo2);text-transform:uppercase;letter-spacing:0.05em;}
+.btn-aggiorna{background:none;border:1px solid var(--bordo);border-radius:6px;padding:2px 8px;font-size:0.7rem;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--testo2);}
+.lista-prenotazioni{flex:1;overflow-y:auto;padding:6px;}
+.pren-card{border-radius:8px;border:2px solid var(--bordo);padding:7px 9px;margin-bottom:5px;cursor:pointer;transition:all 0.15s;background:#fff;}
+.pren-card:hover{border-color:var(--oro);background:#fffdf7;}
+.pren-card.selezionata{border-color:var(--oro);background:#fffdf7;box-shadow:0 0 0 3px #c2a96a55;transform:scale(1.02);}
+.pren-card.assegnata{border-color:var(--giallo);background:var(--giallo-light);}
+.pren-card.assegnata-verve{border-color:var(--verde-verve);background:var(--verde-verve-light);}
+.pren-nome{font-weight:500;font-size:0.85rem;}.pren-orario{font-size:0.75rem;color:var(--testo2);margin-top:2px;}
+.pren-badge{display:inline-block;font-size:0.65rem;padding:2px 7px;border-radius:5px;font-weight:500;margin-top:3px;}
+.pren-badge.principale{background:var(--giallo-light);color:var(--giallo);}
+.pren-badge.verve{background:var(--verde-verve-light);color:var(--verde-verve);}
+.pren-badge.nonassegnato{background:#f0f0f0;color:#999;}
+.pren-badge.occupato{background:var(--rosso-light);color:var(--rosso);}
+.istruzione{font-size:0.7rem;color:var(--testo2);padding:7px 10px;line-height:1.5;border-top:1px solid var(--bordo);background:var(--bg);flex-shrink:0;}
+.istruzione.attiva{background:#fffdf7;color:#7a5500;border-top-color:#e8d9b5;font-weight:500;}
+.barra-unione{display:none;background:#e8eef8;border-top:2px solid #4a6fa5;padding:8px 12px;font-size:0.75rem;color:#1a3a6b;font-weight:500;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;}
+.barra-unione.visibile{display:flex;}
+.barra-unione button{background:#1a3a6b;color:#fff;border:none;border-radius:7px;padding:4px 10px;font-size:0.7rem;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;}
+.panel-dx{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.tabs{display:flex;border-bottom:1px solid var(--bordo);background:#fff;flex-shrink:0;}
+.tab{flex:1;padding:10px;text-align:center;font-size:0.82rem;font-weight:500;cursor:pointer;border-bottom:3px solid transparent;color:var(--testo2);transition:all 0.15s;}
+.tab.attivo{color:#1a1208;border-bottom-color:var(--oro);background:#fffdf7;}
+.tab-verve.attivo{color:var(--verde-verve);border-bottom-color:var(--verde-verve);background:var(--verde-verve-light);}
+.sala{display:none;flex:1;overflow-y:auto;padding:1rem;}.sala.attiva{display:block;}
+.griglia-tavoli{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:10px;}
+.soffitta-sep{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:6px;}
+.soffitta-sep span{font-size:0.7rem;color:#999;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;}
+.soffitta-sep hr{flex:1;border:none;border-top:1px dashed #ccc;}
+.tavolo{background:var(--card);border-radius:12px;border:2.5px solid var(--bordo);padding:12px 8px 10px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;text-align:center;min-height:88px;user-select:none;}
+.tavolo:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,0.12);}.tavolo:active{transform:scale(0.97);}
+.tavolo.libero{border-color:var(--verde);background:var(--verde-light);}
+.tavolo.prenotato{border-color:var(--giallo);background:var(--giallo-light);}
+.tavolo.occupato{border-color:var(--rosso);background:var(--rosso-light);}
+.tavolo.unito{border-color:var(--giallo);background:var(--giallo-light);border-style:dashed;}
+.tavolo.soffitta{border-color:#bbb;background:var(--grigio-light);opacity:0.7;}
+.modalita-selezione .tavolo.libero{animation:pulsaVerde 1.4s ease-in-out infinite;}
+.modalita-unione .tavolo.libero{animation:pulsaBlu 1.4s ease-in-out infinite;}
+@keyframes pulsaVerde{0%,100%{box-shadow:0 0 0 0 #2d7a4f22;}50%{box-shadow:0 0 0 7px #2d7a4f22;}}
+@keyframes pulsaBlu{0%,100%{box-shadow:0 0 0 0 #4a6fa522;}50%{box-shadow:0 0 0 7px #4a6fa522;}}
+.tavolo-num{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;line-height:1;}
+.tavolo.libero .tavolo-num{color:var(--verde);}.tavolo.prenotato .tavolo-num{color:var(--giallo);}.tavolo.occupato .tavolo-num{color:var(--rosso);}
+.tavolo.unito .tavolo-num{color:var(--giallo);font-size:1rem;}.tavolo.soffitta .tavolo-num{color:#999;}
+.tavolo-stato{font-size:0.62rem;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
+.tavolo.libero .tavolo-stato{color:var(--verde);}.tavolo.prenotato .tavolo-stato{color:var(--giallo);}.tavolo.occupato .tavolo-stato{color:var(--rosso);}.tavolo.soffitta .tavolo-stato{color:#999;}
+.tavolo-nome{font-weight:500;font-size:0.72rem;color:var(--testo);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tavolo-persone{font-size:0.68rem;color:var(--testo2);margin-top:2px;}
+.tavolo-verve-marker{display:block;font-size:0.58rem;color:var(--verde-verve);font-weight:500;margin-top:2px;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:flex-end;justify-content:center;}
+.modal-overlay.aperto{display:flex;}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:1.3rem 1.3rem 2rem;width:100%;max-width:440px;animation:slideUp 0.22s ease;}
+@keyframes slideUp{from{transform:translateY(50px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-handle{width:38px;height:4px;background:var(--bordo);border-radius:2px;margin:0 auto 1rem;}
+.modal h2{font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:0.8rem;}
+.riga{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bordo);font-size:0.88rem;}
+.riga span:first-child{color:#6b6b6b;}.riga span:last-child{font-weight:500;}
+.btn-group{display:grid;gap:7px;margin-top:0.9rem;}
+.btn-az{border:none;border-radius:10px;padding:12px;font-size:0.9rem;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;width:100%;transition:opacity 0.15s,transform 0.1s;}
+.btn-az:active{transform:scale(0.98);}
+.btn-libera{background:var(--verde);color:#fff;}.btn-occupa{background:var(--rosso);color:#fff;}
+.btn-rimuovi{background:#fff3cd;color:#7a5500;border:1.5px solid #e8d9a0;}
+.btn-cancella{background:#fbeaea;color:var(--rosso);border:1.5px solid #e8b4b4;}
+.btn-unisci{background:#e8eef8;color:#1a3a6b;border:1.5px solid #b0c4e8;}
+.btn-soffitta{background:var(--grigio-light);color:#555;border:1.5px solid #ccc;}
+.btn-chiudi{background:var(--bordo);color:var(--testo);}
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1a1208;color:#f5ead8;padding:9px 18px;border-radius:20px;font-size:0.82rem;z-index:300;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;}
+.toast.visibile{opacity:1;}
+@media(max-width:768px){
+header{height:50px;}header h1{font-size:1rem;}
+.main{flex-direction:row;height:calc(100vh - 50px);}
+.panel-sx{width:35%;border-right:2px solid var(--bordo);border-bottom:none;}
+.panel-sx-header h2{font-size:0.72rem;}
+.lista-prenotazioni{flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:4px;gap:3px;display:flex;}
+.pren-card{width:100%;min-width:unset;margin:0 0 3px 0;padding:6px 7px;}
+.pren-nome{font-size:0.82rem;}.pren-orario{font-size:0.72rem;}.pren-badge{font-size:0.62rem;}
+.istruzione{font-size:0.68rem;padding:5px 7px;}.barra-unione{padding:5px 7px;font-size:0.68rem;}
+.panel-dx{flex:1;}.tab{padding:8px 3px;font-size:0.78rem;}.sala{padding:5px;}
+.griglia-tavoli{grid-template-columns:repeat(3,1fr);gap:5px;}
+.tavolo{min-height:0;padding:7px 4px 5px;border-radius:9px;border-width:2px;aspect-ratio:1/1.15;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.tavolo-num{font-size:1.45rem;}.tavolo-stato{font-size:0.56rem;margin-top:2px;}
+.tavolo-nome{font-size:0.64rem;margin-top:3px;}.tavolo-persone{font-size:0.58rem;margin-top:1px;}
+.modal{padding:1rem 1rem 1.8rem;}.modal h2{font-size:1rem;}
+.riga{font-size:0.86rem;}.btn-az{padding:11px;font-size:0.88rem;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🍽 Bella Rogliano</h1><p>Gestione Tavoli</p></div>
+  <div id="stato-sync" class="sync-load">Caricamento...</div>
+</header>
+<div class="main">
+  <div class="panel-sx">
+    <div class="panel-sx-header"><h2>Prenotazioni</h2><button class="btn-aggiorna" onclick="aggiorna()">↻</button></div>
+    <div class="lista-prenotazioni" id="lista-prenotazioni"></div>
+    <div class="barra-unione" id="barra-unione">
+      <span id="barra-unione-testo">Tocca tavoli da unire</span>
+      <button onclick="confermaUnione()">✓</button>
+      <button onclick="annullaUnione()" style="background:#888;">✕</button>
+    </div>
+    <div class="istruzione" id="istruzione">Tocca una prenotazione</div>
+  </div>
+  <div class="panel-dx">
+    <div class="tabs">
+      <div class="tab attivo" id="tab-principale" onclick="cambiaSala('principale')">🏛 Principale</div>
+      <div class="tab tab-verve" id="tab-verve" onclick="cambiaSala('verve')">✨ Verve</div>
+    </div>
+    <div class="sala attiva" id="sala-principale"><div class="griglia-tavoli" id="griglia-principale"></div></div>
+    <div class="sala" id="sala-verve"><div class="griglia-tavoli" id="griglia-verve"></div></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal" onclick="chiudiModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modal-titolo"></h2>
+    <div id="modal-body"></div>
+    <div class="btn-group" id="modal-azioni"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbyjs46kA-2SDJncpPc9vbdfw3kvssxxHINcUirInWQ1OjeK-C-FCEKF2Vukln5C4UXZ/exec';
+const TAVOLI_PRINCIPALE=['1','2','3','4','5','6','6B','6T','7','8','8B','9','10','11','12','13'];
+const TAVOLI_VERVE=['1E','2E','3E','4E','5E','6E','7E','8E','9E','10E','11E'];
+var prenotazioni=[],selezionata=null,salaAttiva='principale';
+var modalitaUnione=false,tavoliUnione=[],prenUnione=null,soffitta=[];
+function salaDiTavolo(n){return TAVOLI_VERVE.indexOf(n)>=0?'verve':'principale';}
+function tavoliDiPren(p){return p.tavoli?p.tavoli.split(',').map(function(t){return t.trim().toUpperCase();}).filter(Boolean):[];}
+async function fetchDati(){const r=await fetch(SCRIPT_URL);if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(!d.ok)throw new Error(d.errore||'Errore');return d;}
+async function postDati(payload){const r=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
+function aggiorna(){
+  setSync('load','Aggiornamento...');
+  fetchDati().then(function(d){
+    prenotazioni=d.dati.filter(function(p){return p.nome&&p.nome.trim()&&p.stato!=='cancellata';})
+      .map(function(p){return{id:String(p.id),nome:String(p.nome||'').trim(),orario:String(p.orario||'').trim(),persone:String(p.persone||'').trim(),stato:String(p.stato||'').trim().toLowerCase(),tavoli:String(p.tavoli||'').toUpperCase().trim()};});
+    soffitta=d.soffitta?d.soffitta.split(',').map(function(t){return t.trim().toUpperCase();}).filter(Boolean):[];
+    if(selezionata){var a=prenotazioni.find(function(p){return p.id===selezionata.id;});selezionata=a||null;if(!selezionata){modalitaUnione=false;tavoliUnione=[];prenUnione=null;}}
+    renderTutto();
+    setSync('ok','✓ '+new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));
+  }).catch(function(e){setSync('err','✗ Errore');console.error(e);});
+}
+function renderLista(){
+  var el=document.getElementById('lista-prenotazioni');el.innerHTML='';
+  if(!prenotazioni.length){el.innerHTML='<div style="color:var(--testo2);font-size:0.82rem;padding:8px;">Nessuna prenotazione</div>';return;}
+  prenotazioni.forEach(function(p){
+    var tt=tavoliDiPren(p),assegnata=tt.length>0,sala=assegnata?salaDiTavolo(tt[0]):'';
+    var isOcc=p.stato==='occupato'||p.stato==='in corso',isSel=selezionata&&selezionata.id===p.id;
+    var cls='pren-card'+(isSel?' selezionata':'')+(assegnata&&sala==='verve'?' assegnata-verve':assegnata?' assegnata':'');
+    var bCls,bTxt,tStr=tt.map(function(t){return 'T'+t;}).join('+');
+    if(isOcc&&assegnata){bCls='occupato';bTxt='Occ·'+tStr;}
+    else if(assegnata&&sala==='verve'){bCls='verve';bTxt='V·'+tStr;}
+    else if(assegnata){bCls='principale';bTxt=tStr;}
+    else{bCls='nonassegnato';bTxt='—';}
+    var div=document.createElement('div');div.className=cls;div.onclick=function(){selezionaPren(p);};
+    div.innerHTML='<div class="pren-nome">'+p.nome+'</div><div class="pren-orario">'+(p.orario||'')+(p.persone?' · '+p.persone+'p':'')+'</div><span class="pren-badge '+bCls+'">'+bTxt+'</span>';
+    el.appendChild(div);
+  });
+}
+function renderGriglia(tavoli,idG,sala){
+  var g=document.getElementById(idG);
+  g.className='griglia-tavoli'+(selezionata&&!modalitaUnione&&salaAttiva===sala?' modalita-selezione':'')+(modalitaUnione&&salaAttiva===sala?' modalita-unione':'');
+  g.innerHTML='';
+  var normali=tavoli.filter(function(n){return soffitta.indexOf(n)<0;});
+  var inSoff=tavoli.filter(function(n){return soffitta.indexOf(n)>=0;});
+  function mkT(num){
+    var pren=prenotazioni.find(function(p){return tavoliDiPren(p).indexOf(num)>=0;});
+    var isSoff=soffitta.indexOf(num)>=0,tt=pren?tavoliDiPren(pren):[];
+    var isPrim=pren&&tt[0]===num,isUnito=pren&&tt.length>1&&!isPrim;
+    var isInUni=tavoliUnione.indexOf(num)>=0,isVerve=salaDiTavolo(num)==='verve';
+    var stato='libero';
+    if(isSoff)stato='soffitta';
+    else if(pren){var s=pren.stato;stato=(s==='occupato'||s==='in corso')?'occupato':isUnito?'unito':'prenotato';}
+    var div=document.createElement('div');div.className='tavolo '+stato;
+    if(isInUni){div.style.outline='3px solid #4a6fa5';div.style.outlineOffset='2px';}
+    div.innerHTML='<div class="tavolo-num">'+(isUnito?tt.join('+'):num)+'</div>'+
+      '<div class="tavolo-stato">'+({libero:'Libero',prenotato:'Prenotato',occupato:'Occupato',unito:'Unito',soffitta:'Soffitta'}[stato]||'Libero')+'</div>'+
+      (isVerve&&pren?'<span class="tavolo-verve-marker">✨</span>':'')+
+      (pren&&isPrim?'<div class="tavolo-nome">'+pren.nome+'</div><div class="tavolo-persone">'+(pren.persone?pren.persone+'p':'')+'</div>':'')+
+      (isSoff?'<div style="font-size:0.6rem;color:#999;margin-top:2px;">soffitta</div>':'');
+    div.onclick=function(){cliccaTavolo(num,pren,stato,isSoff);};g.appendChild(div);
+  }
+  normali.forEach(mkT);
+  if(inSoff.length>0){var sep=document.createElement('div');sep.className='soffitta-sep';sep.innerHTML='<hr><span>Soffitta</span><hr>';g.appendChild(sep);inSoff.forEach(mkT);}
+}
+function renderTutto(){renderLista();renderGriglia(TAVOLI_PRINCIPALE,'griglia-principale','principale');renderGriglia(TAVOLI_VERVE,'griglia-verve','verve');aggiornaBarra();aggiornaIstruzione();}
+function cambiaSala(sala){
+  salaAttiva=sala;
+  document.getElementById('sala-principale').className='sala'+(sala==='principale'?' attiva':'');
+  document.getElementById('sala-verve').className='sala'+(sala==='verve'?' attiva':'');
+  document.getElementById('tab-principale').className='tab'+(sala==='principale'?' attivo':'');
+  document.getElementById('tab-verve').className='tab tab-verve'+(sala==='verve'?' attivo':'');
+  renderTutto();
+}
+function aggiornaBarra(){
+  var b=document.getElementById('barra-unione');
+  if(modalitaUnione&&prenUnione){document.getElementById('barra-unione-testo').textContent='"'+prenUnione.nome+'": '+(tavoliUnione.length?tavoliUnione.map(function(t){return 'T'+t;}).join('+'):'—');b.className='barra-unione visibile';}
+  else{b.className='barra-unione';}
+}
+function confermaUnione(){if(!prenUnione||tavoliUnione.length===0){annullaUnione();return;}salvaAssegnazione(prenUnione,'Prenotato',tavoliUnione.join(','));mostraToast(prenUnione.nome+' → '+tavoliUnione.map(function(t){return 'T'+t;}).join('+'));annullaUnione();}
+function annullaUnione(){modalitaUnione=false;tavoliUnione=[];prenUnione=null;selezionata=null;renderTutto();}
+function selezionaPren(p){
+  modalitaUnione=false;tavoliUnione=[];prenUnione=null;
+  selezionata=(selezionata&&selezionata.id===p.id)?null:p;renderTutto();
+  if(!selezionata||!selezionata.tavoli)return;
+  var tt=tavoliDiPren(selezionata);if(!tt.length)return;
+  var primario=tt[0],sala=salaDiTavolo(primario);
+  if(sala!==salaAttiva)cambiaSala(sala);
+  setTimeout(function(){
+    var gr=document.getElementById(sala==='verve'?'griglia-verve':'griglia-principale');
+    var tvl=gr?gr.querySelectorAll('.tavolo'):[];
+    for(var i=0;i<tvl.length;i++){var ne=tvl[i].querySelector('.tavolo-num');if(ne&&ne.textContent.trim()===primario){tvl[i].scrollIntoView({behavior:'smooth',block:'center'});var t=tvl[i];t.style.outline='4px solid #c2a96a';t.style.outlineOffset='3px';setTimeout(function(){t.style.outline='';t.style.outlineOffset='';},1800);break;}}
+  },120);
+}
+function aggiornaIstruzione(){
+  var el=document.getElementById('istruzione');
+  if(modalitaUnione&&prenUnione){el.className='istruzione attiva';el.textContent='Tocca tavoli per "'+prenUnione.nome+'" → Conferma';}
+  else if(!selezionata){el.className='istruzione';el.textContent='Tocca prenotazione · Tocca tavolo per modificare';}
+  else if(selezionata.tavoli){var tt=tavoliDiPren(selezionata);el.className='istruzione attiva';el.textContent='"'+selezionata.nome+'" '+tt.map(function(t){return 'T'+t;}).join('+')+'— sposta';}
+  else{el.className='istruzione attiva';el.textContent='"'+selezionata.nome+'" — tocca tavolo libero';}
+}
+function cliccaTavolo(num,prenEs,stato,isSoff){
+  if(modalitaUnione){if(prenEs&&prenUnione&&prenEs.id!==prenUnione.id){mostraToast('T'+num+' occupato da '+prenEs.nome);return;}var idx=tavoliUnione.indexOf(num);if(idx>=0)tavoliUnione.splice(idx,1);else{if(tavoliUnione.length>=4){mostraToast('Max 4 tavoli');return;}tavoliUnione.push(num);}renderTutto();return;}
+  if(selezionata){if(prenEs&&prenEs.id===selezionata.id){apriModal(num,prenEs,isSoff);return;}if(prenEs){mostraToast('T'+num+' occupato da '+prenEs.nome);return;}if(isSoff){mostraToast('T'+num+' è in soffitta');return;}salvaAssegnazione(selezionata,'Prenotato',num);selezionata=null;return;}
+  apriModal(num,prenEs,isSoff);
+}
+function salvaAssegnazione(pren,stato,tavoliStr){var idx=prenotazioni.findIndex(function(p){return p.id===pren.id;});if(idx!==-1){prenotazioni[idx].tavoli=tavoliStr;prenotazioni[idx].stato=stato.toLowerCase();}renderTutto();postDati({action:'aggiornaAssegnazione',id:pren.id,stato:stato,tavoli:tavoliStr}).then(function(){setSync('ok','✓ Salvato');}).catch(function(){setSync('err','✗ Errore');});}
+function rimuoviAssegnazione(pren){chiudiModal();selezionata=null;modalitaUnione=false;tavoliUnione=[];prenUnione=null;var idx=prenotazioni.findIndex(function(p){return p.id===pren.id;});if(idx!==-1){prenotazioni[idx].tavoli='';prenotazioni[idx].stato='prenotato';}renderTutto();mostraToast(pren.nome+' rimosso');postDati({action:'aggiornaAssegnazione',id:pren.id,stato:'Prenotato',tavoli:''}).then(function(){setSync('ok','✓ Salvato');}).catch(function(){setSync('err','✗ Errore');});}
+function cambiaStato(pren,nuovoStato){chiudiModal();var idx=prenotazioni.findIndex(function(p){return p.id===pren.id;});if(idx!==-1){prenotazioni[idx].stato=nuovoStato.toLowerCase();if(nuovoStato.toLowerCase()==='libero')prenotazioni[idx].tavoli='';}renderTutto();mostraToast((pren.tavoli||'?')+': '+nuovoStato);postDati({action:'aggiornaStato',id:pren.id,stato:nuovoStato}).then(function(){setSync('ok','✓ Salvato');}).catch(function(){setSync('err','✗ Errore');});}
+function cancellaPrenotazione(pren){chiudiModal();prenotazioni=prenotazioni.filter(function(p){return p.id!==pren.id;});selezionata=null;modalitaUnione=false;tavoliUnione=[];prenUnione=null;renderTutto();mostraToast(pren.nome+' cancellato');postDati({action:'cancella',id:pren.id}).then(function(){setSync('ok','✓ Salvato');}).catch(function(){setSync('err','✗ Errore');});}
+function mandaInSoffitta(num){chiudiModal();if(soffitta.indexOf(num)<0)soffitta.push(num);salvaSoffitta();renderTutto();mostraToast('T'+num+' in soffitta');}
+function riportaDaSoffitta(num){chiudiModal();soffitta=soffitta.filter(function(t){return t!==num;});salvaSoffitta();renderTutto();mostraToast('T'+num+' riportato');}
+function salvaSoffitta(){postDati({action:'aggiornaSoffitta',tavoli:soffitta.join(',')}).then(function(){setSync('ok','✓ Salvato');}).catch(function(){setSync('err','✗ Errore');});}
+function apriModal(num,pren,isSoff){
+  document.getElementById('modal-titolo').textContent='TAV. '+num;
+  var body=document.getElementById('modal-body'),tt=pren?tavoliDiPren(pren):[];
+  if(pren){body.innerHTML='<div class="riga"><span>Cliente</span><span>'+pren.nome+'</span></div><div class="riga"><span>Orario</span><span>'+(pren.orario||'—')+'</span></div><div class="riga"><span>Persone</span><span>'+(pren.persone||'—')+'</span></div><div class="riga"><span>Tavoli</span><span>'+(tt.map(function(t){return 'T'+t;}).join(' + ')||'—')+'</span></div><div class="riga"><span>Stato</span><span>'+(pren.stato||'—')+'</span></div>';}
+  else{body.innerHTML='<div class="riga"><span>'+(isSoff?'In soffitta':'Tavolo libero')+'</span><span></span></div>';}
+  var az=document.getElementById('modal-azioni');az.innerHTML='';
+  function btn(cls,txt,fn){var b=document.createElement('button');b.className='btn-az '+cls;b.textContent=txt;b.onclick=fn;az.appendChild(b);}
+  if(isSoff){btn('btn-libera','↑ Riporta in sala',function(){riportaDaSoffitta(num);});}
+  else if(pren){
+    var s=pren.stato;
+    if(s!=='occupato'&&s!=='in corso')btn('btn-occupa','● Segna Occupato',function(){cambiaStato(pren,'Occupato');});
+    if(s==='occupato'||s==='in corso')btn('btn-libera','✓ Torna Prenotato',function(){cambiaStato(pren,'Prenotato');});
+    btn('btn-unisci','⊞ Unisci con altri tavoli',function(){chiudiModal();modalitaUnione=true;prenUnione=pren;tavoliUnione=tavoliDiPren(pren).slice();selezionata=null;renderTutto();});
+    btn('btn-unisci','⇄ Sposta su altro tavolo',function(){chiudiModal();var idx=prenotazioni.findIndex(function(p){return p.id===pren.id;});if(idx!==-1)prenotazioni[idx].tavoli='';selezionata=prenotazioni[idx]||pren;modalitaUnione=false;renderTutto();});
+    btn('btn-rimuovi','↩ Rimuovi dal tavolo',function(){rimuoviAssegnazione(pren);});
+    btn('btn-cancella','🗑 Cancella prenotazione',function(){if(confirm('Cancellare '+pren.nome+'?'))cancellaPrenotazione(pren);});
+  }else{btn('btn-soffitta','⬇ Manda in soffitta',function(){mandaInSoffitta(num);});}
+  btn('btn-chiudi','Chiudi',chiudiModal);
+  document.getElementById('modal').classList.add('aperto');
+}
+function chiudiModal(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('aperto');}
+var toastTimer=null;
+function mostraToast(msg){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('visibile');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('visibile');},2500);}
+function setSync(t,txt){var el=document.getElementById('stato-sync');el.className='sync-'+t;el.textContent=txt;}
+aggiorna();
+setInterval(aggiorna,25000);
+</script>
+</body>
+</html>
